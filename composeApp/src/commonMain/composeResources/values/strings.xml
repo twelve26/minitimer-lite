@@ -55,4 +55,5 @@
     <string name="save_value_error">Could not save the value.</string>
     <string name="session_prefix">Session</string>
     <string name="counter_prefix">Counter</string>
+    <string name="counting">Counting: %1$s</string>
 </resources>

@@ -1,6 +1,6 @@
 # MiniTimer lite for Android and iOS
 
-Functional specification v0.15.
+Functional specification v0.16.
 
 ## Purpose
 
@@ -17,7 +17,7 @@ Record counts as you go and resume them later. For example, a church can use a s
 
 ## Counting
 
-- New counters start at zero. The on-screen buttons add or subtract one from the corresponding counter.
+- New counters start at zero. The bottom bar adds or subtracts one from the selected counter.
 - On Android, when the counting screen is visible and the device is unlocked, volume up adds one to the first active counter and volume down subtracts one. The volume buttons retain their normal behavior on other screens and when the device is locked.
 - The pencil beside a counter name opens its value editor. The app accepts integers only.
 - Each session has a setting to allow negative values. It is off by default. With the setting off, subtracting from zero leaves the counter at zero, and the value editor rejects negative numbers.
@@ -25,13 +25,19 @@ Record counts as you go and resume them later. For example, a church can use a s
 - In the value editor, **Reset** returns the counter to zero after confirmation.
 - Deleting a counter or session requires confirmation. Deleting a session also deletes its counters.
 
+The counting bar stays at the bottom of the session. It shows the selected
+counter and its current value, with a wider **+1** button beside **−1**.
+The first active counter is selected when you open the session. Tap a name
+in the list or use the selector in the bar to switch. Android's volume buttons
+continue to control the first active counter in the session order.
+
 ## Local storage
 
 The app automatically saves each change on the device. If you close the app with a counter at 27, its value is still 27 when you reopen the session. You can create, edit, count, and delete offline. The app requires no account.
 
 ## Export
 
-**Export** remains at the bottom of the counting screen. It copies all counter names and values to the clipboard in session order. The first line contains the calculated total in `total - value` format. Each counter occupies its own line in `name - value` format. The export includes inactive counters and counters excluded from the total.
+**Export** appears in the session header. It copies all counter names and values to the clipboard in session order. The first line contains the calculated total in `total - value` format. Each counter occupies its own line in `name - value` format. The export includes inactive counters and counters excluded from the total.
 
 ## Session total
 
@@ -57,7 +63,7 @@ The project uses Kotlin Multiplatform and Compose Multiplatform. Android and iOS
 ## Acceptance criteria
 
 - In airplane mode, create a session with a description and three named counters. Close and reopen the app and verify that the session and all three counters are still there.
-- On Android, with three active counters, tap an on-screen button for the second counter. Only that counter changes. Move it to the first position and verify that the volume buttons now change it.
+- On Android, with three active counters, select the second counter and tap a button in the counting bar. Only that counter changes. Move it to the first position and verify that the volume buttons now change it.
 - On Android, verify that the volume buttons do not change any counts on the sessions list or when the screen is locked.
 - Activate four or more counters in one session and scroll to reach them. Reopen the session and verify that their active status and order persist.
 - With negatives off, subtract one from zero and verify the value stays at zero. With negatives on, verify the same action produces −1. Verify the value editor rejects decimals in both cases.
@@ -69,3 +75,5 @@ The project uses Kotlin Multiplatform and Compose Multiplatform. Android and iOS
 - Reduce the number of active counters from three to two in **Edit session**. Reactivate the third counter and verify it retains its value and name.
 - Tap **Start**, create a session, and save the form without changes. The session opens with **Counter 1** active at zero.
 - Set the device language to English, Spanish, or Portuguese and verify the interface uses the corresponding language. Switch to an unsupported language and verify it uses English. Saved names and descriptions persist across language changes.
+
+- Open a session with several active counters. Verify the bottom bar starts on the first. Select another counter and verify the bar changes only that counter. Scroll and verify the bar stays visible. On Android, verify the volume buttons still change the first active counter.

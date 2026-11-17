@@ -15,9 +15,12 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,6 +33,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,12 +44,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -263,13 +269,28 @@ private fun CountScreen(
     export: () -> Unit,
 ) {
     val active = session.activeCounters
+    var selectedId by rememberSaveable(session.id) { mutableStateOf<String?>(null) }
+    val explicitSelection = active.firstOrNull { it.id == selectedId }
+    val selected = explicitSelection ?: active.firstOrNull()
+    LaunchedEffect(selectedId, explicitSelection?.id) {
+        if (selectedId != null && explicitSelection == null) selectedId = null
+    }
     val listState = rememberLazyListState()
     val drag = remember(session.id, listState) { CounterDrag(listState) }
     val reorder = if (active.size > 1) Modifier.reorderCounters(drag, move) else Modifier
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             TextButton(onClick = back) { Text(stringResource(Res.string.back_sessions)) }
-            ThemeButton(dark, toggleTheme)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = export, enabled = session.counters.isNotEmpty()) {
+                    Text(stringResource(Res.string.export))
+                }
+                ThemeButton(dark, toggleTheme)
+            }
         }
         LazyColumn(
             modifier = Modifier.weight(1f).then(reorder),
@@ -301,10 +322,9 @@ private fun CountScreen(
             }
             items(active, key = { it.id }, contentType = { "counter" }) { counter ->
                 val reorderLabel = stringResource(Res.string.reorder_counter, counter.name)
-                val decrementLabel = stringResource(Res.string.decrement, counter.name)
-                val incrementLabel = stringResource(Res.string.increment, counter.name)
+                val isSelected = counter.id == selected?.id
                 val dragging = drag.id == counter.id
-                val background = if (dragging || drag.target == counter.id) MaterialTheme.colorScheme.surfaceVariant
+                val background = if (dragging || drag.target == counter.id || isSelected) MaterialTheme.colorScheme.surfaceVariant
                     else MaterialTheme.colorScheme.background
                 Column(
                     Modifier.fillMaxWidth()
@@ -335,46 +355,98 @@ private fun CountScreen(
                                 contentAlignment = Alignment.Center,
                             ) { DrawGlyph(Glyph.Handle) }
                         }
-                        Text(
-                            counter.name,
-                            modifier = Modifier.weight(1f, fill = false),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                        Column(
+                            Modifier.weight(1f)
+                                .heightIn(min = 48.dp)
+                                .selectable(selected = isSelected, role = Role.RadioButton) { selectedId = counter.id }
+                                .padding(horizontal = 4.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                counter.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            if (hasVolume && counter.id == active.first().id) {
+                                Text(stringResource(Res.string.volume_buttons), style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                        NumberText(counter.value.toString(), numbers, 22)
                         GlyphButton(Glyph.Pencil, stringResource(Res.string.edit_value, counter.name), { editValue(counter.id) })
                     }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedButton(
-                            onClick = { adjust(counter.id, -1) },
-                            modifier = Modifier.sizeIn(minWidth = 54.dp, minHeight = 52.dp)
-                                .semantics { contentDescription = decrementLabel },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(0.dp),
-                        ) { Text("−", fontSize = 28.sp) }
-                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            NumberText(counter.value.toString(), numbers, 38)
-                        }
-                        Button(
-                            onClick = { adjust(counter.id, 1) },
-                            modifier = Modifier.sizeIn(minWidth = 76.dp, minHeight = 52.dp)
-                                .semantics { contentDescription = incrementLabel },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(0.dp),
-                        ) { Text("+", fontSize = 28.sp) }
-                    }
-                    if (hasVolume && counter.id == active.first().id) {
-                        Text(stringResource(Res.string.volume_buttons), modifier = Modifier.padding(top = 5.dp), style = MaterialTheme.typography.labelMedium)
-                    }
+
                 }
             }
         }
-        HorizontalDivider()
-        Button(
-            onClick = export,
-            enabled = session.counters.isNotEmpty(),
-            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp).heightIn(min = 48.dp),
-            shape = RoundedCornerShape(10.dp),
-        ) { Text(stringResource(Res.string.export)) }
+        if (selected != null) {
+            CountBar(
+                counter = selected,
+                active = active,
+                numbers = numbers,
+                select = { selectedId = it },
+                adjust = { delta -> adjust(selected.id, delta) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun CountBar(
+    counter: Counter,
+    active: List<Counter>,
+    numbers: FontFamily,
+    select: (String) -> Unit,
+    adjust: (Int) -> Unit,
+) {
+    val caption = stringResource(Res.string.counting, counter.name)
+    val decrementLabel = stringResource(Res.string.decrement, counter.name)
+    val incrementLabel = stringResource(Res.string.increment, counter.name)
+    var showCounters by remember { mutableStateOf(false) }
+    HorizontalDivider()
+    Column(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) {
+                if (active.size > 1) {
+                    TextButton(onClick = { showCounters = true }) {
+                        Text("$caption ▾", maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                    DropdownMenu(expanded = showCounters, onDismissRequest = { showCounters = false }) {
+                        active.forEach { option ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(option.name, fontWeight = if (option.id == counter.id) FontWeight.Bold else FontWeight.Normal)
+                                },
+                                onClick = {
+                                    select(option.id)
+                                    showCounters = false
+                                },
+                            )
+                        }
+                    }
+                } else {
+                    Text(caption, modifier = Modifier.padding(vertical = 10.dp))
+                }
+            }
+            NumberText(counter.value.toString(), numbers, 24)
+        }
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedButton(
+                onClick = { adjust(-1) },
+                modifier = Modifier.weight(1f).heightIn(min = 58.dp)
+                    .semantics { contentDescription = decrementLabel },
+                shape = RoundedCornerShape(10.dp),
+            ) { Text("−1", fontSize = 24.sp) }
+            Button(
+                onClick = { adjust(1) },
+                modifier = Modifier.weight(2f).heightIn(min = 58.dp)
+                    .semantics { contentDescription = incrementLabel },
+                shape = RoundedCornerShape(10.dp),
+            ) { Text("+1", fontSize = 24.sp) }
+        }
     }
 }
 

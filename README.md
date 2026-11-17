@@ -20,6 +20,8 @@ Open `iosApp/MiniTimer.xcodeproj` in Xcode and run the **MiniTimer** scheme on a
 
 Tap **Start** and create a session. The form suggests a name and starts with **Counter 1** active at zero. Save right away or add more counters. In **Edit session**, you can change counter names, order, and whether they contribute to the total. Turn on **Active** for the counters you want to see.
 
+The bottom bar counts for the selected counter. Tap a name in the list or use the bar selector to switch. **Export** is in the session header.
+
 On Android, the volume buttons add or subtract one from the first active counter. The pencil beside each counter lets you edit its value or reset it in the same dialog. Changes are saved on the device. **Export** copies the total on the first line, followed by each counter.
 
 ## Implementation

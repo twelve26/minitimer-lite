@@ -17,13 +17,12 @@ The app starts in the light theme. The moon icon switches to dark, and the sun i
 
 - The welcome screen uses the selected theme, with the logo and name near the top and **Start** at the bottom.
 - The sessions list shows each session’s name first, followed by its optional description.
-- The counting screen aligns the values and keeps each counter’s buttons in the same position. The design aims to show three rows without scrolling on a typical phone. The list scrolls when more rows are active than can fit. The layout should also be checked with enlarged text.
+- The counting screen aligns the values and highlights the selected counter. The design aims to show three rows without scrolling on a typical phone. The list scrolls when more rows are active than can fit. The layout should also be checked with enlarged text.
 - The target minimum touch area for buttons is 48 dp. The add button has a solid fill, and the subtract button has a visible outline.
 - On Android, a short label beside the first counter indicates that the volume buttons control it. The label follows the first counter when the order changes.
 - The total, when shown, has its own band and is visually distinct from editable values. Set each counter’s inclusion when editing the session. The mockup exposes that setting in each row so you can try the calculation.
 - The pencil beside the session name opens **Edit session**, where you can change the name and add, rename, reorder, or deactivate counters. Deactivating a counter preserves its value and removes it from the total. When several counters are active, each row has a handle you can press and hold to drag it into position.
 - The pencil beside each counter opens the value editor, which also offers **Reset**. Edit, reset, and delete are secondary actions so the counting controls have room.
-- **Export** stays at the bottom of the counting screen while the counter list scrolls.
 - Labels follow the device language in English, Spanish, or Portuguese. The Portuguese translation uses Brazilian wording. English is the fallback, and saved names stay as entered.
 
 ## References
@@ -37,3 +36,10 @@ The app starts in the light theme. The moon icon switches to dark, and the sun i
 The launcher icon uses cream tally marks on a pine green background. Android
 uses an adaptive icon with a monochrome layer for supported themed launchers.
 iOS uses the 1024 × 1024 image in the AppIcon asset catalog.
+
+## One-handed counting
+
+The session header contains **Export**. The bottom bar keeps the selected
+counter, its value, and the **−1** and **+1** buttons within thumb reach.
+The **+1** button uses twice the available width of **−1**. Tap a row name
+or the bar selector to switch counters. The list scrolls above the bar.
