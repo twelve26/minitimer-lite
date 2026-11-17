@@ -45,7 +45,6 @@ class MainActivity : ComponentActivity() {
                 newId = { UUID.randomUUID().toString() },
                 copyText = ::copyToClipboard,
                 bindVolume = { volumeAction = it },
-                hasVolumeControls = true,
                 backHandler = { enabled, back -> BackHandler(enabled, back) },
             )
         }

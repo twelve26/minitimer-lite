@@ -15,7 +15,6 @@
     <string name="export">Exportar</string>
     <string name="total">Total</string>
     <string name="enable_counter">Activa un contador en Editar sesión.</string>
-    <string name="volume_buttons">Botones de volumen</string>
     <string name="reorder_counter">Reordenar %1$s</string>
     <string name="move_up">Subir</string>
     <string name="move_down">Bajar</string>

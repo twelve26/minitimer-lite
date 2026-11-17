@@ -83,7 +83,6 @@ internal fun ContadoresApp(
     newId: () -> String,
     copyText: (String) -> Unit,
     bindVolume: (((Int) -> Unit)?) -> Unit = {},
-    hasVolumeControls: Boolean = false,
     backHandler: @Composable (Boolean, () -> Unit) -> Unit = { _, _ -> },
 ) {
     var started by rememberSaveable { mutableStateOf(false) }
@@ -150,7 +149,6 @@ internal fun ContadoresApp(
                         adjust = { id, delta -> store.adjust(session.id, id, delta) },
                         move = { id, target -> store.moveActive(session.id, id, target) },
                         editValue = { valueId = it },
-                        hasVolume = hasVolumeControls,
                         export = { copyText(session.exportText()) },
                     )
                 }
@@ -267,7 +265,6 @@ private fun CountScreen(
     adjust: (String, Int) -> Unit,
     move: (String, String) -> Unit,
     editValue: (String) -> Unit,
-    hasVolume: Boolean,
     export: () -> Unit,
 ) {
     val active = session.activeCounters
@@ -370,9 +367,6 @@ private fun CountScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
-                            if (hasVolume && counter.id == active.first().id) {
-                                Text(stringResource(Res.string.volume_buttons), style = MaterialTheme.typography.labelMedium)
-                            }
                         }
                         NumberText(counter.value.toString(), numbers, 22)
                         GlyphButton(Glyph.Pencil, stringResource(Res.string.edit_value, counter.name), { editValue(counter.id) })

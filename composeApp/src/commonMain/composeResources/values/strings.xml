@@ -15,7 +15,6 @@
     <string name="export">Export</string>
     <string name="total">Total</string>
     <string name="enable_counter">Enable a counter in Edit session.</string>
-    <string name="volume_buttons">Volume buttons</string>
     <string name="reorder_counter">Reorder %1$s</string>
     <string name="move_up">Move up</string>
     <string name="move_down">Move down</string>
