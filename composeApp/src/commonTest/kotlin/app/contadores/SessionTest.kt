@@ -21,7 +21,7 @@ class SessionTest {
         val existing = Session("existing", "Sesión 1")
         val store = NotebookStore(Notebook(sessions = listOf(existing)), write = {})
         val ids = listOf("new", "first").iterator()
-        store.startSession { ids.next() }
+        store.startSession("Sesión", "Contador") { ids.next() }
 
         val draft = requireNotNull(store.editor)
         assertEquals(true, draft.isNew)

@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
         val clipboard = getSystemService(ClipboardManager::class.java) ?: return
         clipboard.setPrimaryClip(ClipData.newPlainText("MiniTimer lite", text))
         if (Build.VERSION.SDK_INT < 33) {
-            Toast.makeText(this, "Contadores copiados", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.clipboard_copied), Toast.LENGTH_SHORT).show()
         }
     }
 

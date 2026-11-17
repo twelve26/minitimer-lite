@@ -1,5 +1,6 @@
 package app.contadores
 
+import app.contadores.resources.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.IconButton
@@ -12,6 +13,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 
 internal enum class Glyph { Pencil, Sun, Moon, Handle, Tally }
 
@@ -19,7 +21,7 @@ internal enum class Glyph { Pencil, Sun, Moon, Handle, Tally }
 internal fun ThemeButton(dark: Boolean, toggle: () -> Unit, enabled: Boolean = true) {
     GlyphButton(
         glyph = if (dark) Glyph.Sun else Glyph.Moon,
-        label = if (dark) "Activar tema claro" else "Activar tema oscuro",
+        label = if (dark) stringResource(Res.string.activate_light) else stringResource(Res.string.activate_dark),
         onClick = toggle,
         enabled = enabled,
     )

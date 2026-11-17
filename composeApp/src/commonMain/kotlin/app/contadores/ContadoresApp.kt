@@ -1,9 +1,6 @@
 package app.contadores
 
-import app.contadores.resources.Res
-import app.contadores.resources.ibm_plex_mono
-import app.contadores.resources.instrument_serif
-import app.contadores.resources.inter
+import app.contadores.resources.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,8 +18,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -55,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import org.jetbrains.compose.resources.Font
+import org.jetbrains.compose.resources.stringResource
 
 private val lightColors = lightColorScheme(
     background = Color(0xFFF8F3E8), onBackground = Color(0xFF252823),
@@ -86,13 +82,12 @@ internal fun ContadoresApp(
     var sessionId by rememberSaveable { mutableStateOf<String?>(null) }
     val editor = store.editor
     var valueId by rememberSaveable { mutableStateOf<String?>(null) }
-    var resetId by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteId by rememberSaveable { mutableStateOf<String?>(null) }
     val notebook = store.state
     val session = notebook.sessions.firstOrNull { it.id == sessionId }
     val first = session?.activeCounters?.firstOrNull()
     val canCount = started && editor == null &&
-        valueId == null && resetId == null && deleteId == null
+        valueId == null && deleteId == null
     DisposableEffect(session?.id, first?.id, canCount) {
         bindVolume(if (canCount && session != null && first != null) {
             { delta -> store.adjust(session.id, first.id, delta) }
@@ -102,6 +97,8 @@ internal fun ContadoresApp(
     backHandler(started && editor == null) {
         if (sessionId != null) sessionId = null else started = false
     }
+    val sessionPrefix = stringResource(Res.string.session_prefix)
+    val counterPrefix = stringResource(Res.string.counter_prefix)
     val dark = usesDarkTheme(notebook.appearance)
     val toggleTheme: () -> Unit = {
         store.save(store.state.copy(appearance = if (dark) Appearance.Light else Appearance.Dark))
@@ -111,8 +108,8 @@ internal fun ContadoresApp(
             Column(Modifier.fillMaxSize().padding(padding)) {
                 if (store.readFailed || store.saveFailed) {
                     Text(
-                        if (store.readFailed) "No se pudieron abrir los datos guardados."
-                        else "No se pudo guardar el cambio. Vuelve a intentarlo.",
+                        if (store.readFailed) stringResource(Res.string.read_error)
+                        else stringResource(Res.string.retry_save_error),
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(16.dp),
                     )
@@ -127,7 +124,7 @@ internal fun ContadoresApp(
                 } else if (session == null) {
                     HomeScreen(
                         sessions = notebook.sessions,
-                        create = { store.startSession(newId) },
+                        create = { store.startSession(sessionPrefix, counterPrefix, newId) },
                         open = { sessionId = it },
                         delete = { deleteId = it },
                         dark = dark,
@@ -145,7 +142,6 @@ internal fun ContadoresApp(
                         adjust = { id, delta -> store.adjust(session.id, id, delta) },
                         move = { id, target -> store.moveActive(session.id, id, target) },
                         editValue = { valueId = it },
-                        reset = { resetId = it },
                         hasVolume = hasVolumeControls,
                         export = { copyText(session.exportText()) },
                     )
@@ -164,25 +160,20 @@ internal fun ContadoresApp(
         }
         val valueCounter = session?.counters?.firstOrNull { it.id == valueId }
         if (session != null && valueCounter != null) {
-            ValueDialog(valueCounter, session.allowNegative, onClose = { valueId = null }) { value ->
+            ValueDialog(
+                counter = valueCounter,
+                allowNegative = session.allowNegative,
+                onClose = { valueId = null },
+            ) { value ->
                 val changed = session.copy(counters = session.counters.map {
                     if (it.id == valueCounter.id) it.copy(value = value) else it
                 })
                 store.save(notebook.upsert(changed)).also { if (it) valueId = null }
             }
         }
-        val resetCounter = session?.counters?.firstOrNull { it.id == resetId }
-        if (session != null && resetCounter != null) {
-            Confirm("Restablecer contador", "«${resetCounter.name}» volverá a cero.", "Restablecer", { resetId = null }) {
-                val changed = session.copy(counters = session.counters.map {
-                    if (it.id == resetCounter.id) it.copy(value = 0) else it
-                })
-                store.save(notebook.upsert(changed)).also { if (it) resetId = null }
-            }
-        }
         val toDelete = notebook.sessions.firstOrNull { it.id == deleteId }
         if (toDelete != null) {
-            Confirm("Borrar sesión", "Se borrará «${toDelete.name}» con todos sus contadores.", "Borrar", { deleteId = null }) {
+            Confirm(stringResource(Res.string.delete_session), stringResource(Res.string.delete_session_message, toDelete.name), stringResource(Res.string.delete), { deleteId = null }) {
                 store.save(notebook.copy(sessions = notebook.sessions.filterNot { it.id == toDelete.id }))
                     .also { if (it) deleteId = null }
             }
@@ -232,13 +223,14 @@ private fun HomeScreen(
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Sesiones", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f))
+                Text(stringResource(Res.string.sessions), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f))
                 ThemeButton(dark, toggleTheme, enabled = enabled)
             }
         }
-        item { Button(onClick = create, enabled = enabled) { Text("Nueva sesión") } }
-        if (sessions.isEmpty() && enabled) item { Text("Aún no tienes sesiones.") }
+        item { Button(onClick = create, enabled = enabled) { Text(stringResource(Res.string.new_session)) } }
+        if (sessions.isEmpty() && enabled) item { Text(stringResource(Res.string.empty_sessions)) }
         items(sessions, key = { it.id }) { session ->
+            val deleteLabel = stringResource(Res.string.delete_session_a11y, session.name)
             HorizontalDivider()
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Surface(onClick = { open(session.id) }, modifier = Modifier.weight(1f)) {
@@ -249,8 +241,8 @@ private fun HomeScreen(
                 }
                 TextButton(
                     onClick = { delete(session.id) },
-                    modifier = Modifier.semantics { contentDescription = "Borrar sesión ${session.name}" },
-                ) { Text("Borrar") }
+                    modifier = Modifier.semantics { contentDescription = deleteLabel },
+                ) { Text(stringResource(Res.string.delete)) }
             }
         }
     }
@@ -267,7 +259,6 @@ private fun CountScreen(
     adjust: (String, Int) -> Unit,
     move: (String, String) -> Unit,
     editValue: (String) -> Unit,
-    reset: (String) -> Unit,
     hasVolume: Boolean,
     export: () -> Unit,
 ) {
@@ -277,7 +268,7 @@ private fun CountScreen(
     val reorder = if (active.size > 1) Modifier.reorderCounters(drag, move) else Modifier
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = back) { Text("‹ Sesiones") }
+            TextButton(onClick = back) { Text(stringResource(Res.string.back_sessions)) }
             ThemeButton(dark, toggleTheme)
         }
         LazyColumn(
@@ -292,7 +283,7 @@ private fun CountScreen(
                         style = MaterialTheme.typography.headlineLarge,
                         modifier = Modifier.weight(1f, fill = false),
                     )
-                    GlyphButton(Glyph.Pencil, "Editar sesión", edit)
+                    GlyphButton(Glyph.Pencil, stringResource(Res.string.edit_session), edit)
                 }
                 if (session.description.isNotBlank()) Text(session.description, modifier = Modifier.padding(top = 5.dp))
                 if (session.showTotal) {
@@ -301,14 +292,17 @@ private fun CountScreen(
                             Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text("Total", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(Res.string.total), modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                             NumberText(session.total.toString(), numbers, 28)
                         }
                     }
                 }
-                if (active.isEmpty()) Text("Activa un contador en Editar sesión.", modifier = Modifier.padding(top = 16.dp))
+                if (active.isEmpty()) Text(stringResource(Res.string.enable_counter), modifier = Modifier.padding(top = 16.dp))
             }
             items(active, key = { it.id }, contentType = { "counter" }) { counter ->
+                val reorderLabel = stringResource(Res.string.reorder_counter, counter.name)
+                val decrementLabel = stringResource(Res.string.decrement, counter.name)
+                val incrementLabel = stringResource(Res.string.increment, counter.name)
                 val dragging = drag.id == counter.id
                 val background = if (dragging || drag.target == counter.id) MaterialTheme.colorScheme.surfaceVariant
                     else MaterialTheme.colorScheme.background
@@ -323,17 +317,19 @@ private fun CountScreen(
                     Row(Modifier.fillMaxWidth().padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (active.size > 1) {
                             val index = active.indexOf(counter)
+                            val moveUp = stringResource(Res.string.move_up)
+                            val moveDown = stringResource(Res.string.move_down)
                             val actions = buildList {
                                 active.getOrNull(index - 1)?.let { target ->
-                                    add(CustomAccessibilityAction("Subir") { move(counter.id, target.id); true })
+                                    add(CustomAccessibilityAction(moveUp) { move(counter.id, target.id); true })
                                 }
                                 active.getOrNull(index + 1)?.let { target ->
-                                    add(CustomAccessibilityAction("Bajar") { move(counter.id, target.id); true })
+                                    add(CustomAccessibilityAction(moveDown) { move(counter.id, target.id); true })
                                 }
                             }
                             Box(
                                 Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).semantics {
-                                    contentDescription = "Reordenar ${counter.name}"
+                                    contentDescription = reorderLabel
                                     customActions = actions
                                 },
                                 contentAlignment = Alignment.Center,
@@ -345,26 +341,13 @@ private fun CountScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        GlyphButton(Glyph.Pencil, "Editar valor de ${counter.name}", { editValue(counter.id) })
-                        var menu by remember { mutableStateOf(false) }
-                        Box {
-                            TextButton(
-                                onClick = { menu = true },
-                                modifier = Modifier.semantics { contentDescription = "Opciones de ${counter.name}" },
-                            ) { Text("⋯", fontSize = 23.sp) }
-                            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                                DropdownMenuItem(text = { Text("Restablecer") }, onClick = {
-                                    menu = false
-                                    reset(counter.id)
-                                })
-                            }
-                        }
+                        GlyphButton(Glyph.Pencil, stringResource(Res.string.edit_value, counter.name), { editValue(counter.id) })
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         OutlinedButton(
                             onClick = { adjust(counter.id, -1) },
                             modifier = Modifier.sizeIn(minWidth = 54.dp, minHeight = 52.dp)
-                                .semantics { contentDescription = "Restar uno a ${counter.name}" },
+                                .semantics { contentDescription = decrementLabel },
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(0.dp),
                         ) { Text("−", fontSize = 28.sp) }
@@ -374,13 +357,13 @@ private fun CountScreen(
                         Button(
                             onClick = { adjust(counter.id, 1) },
                             modifier = Modifier.sizeIn(minWidth = 76.dp, minHeight = 52.dp)
-                                .semantics { contentDescription = "Sumar uno a ${counter.name}" },
+                                .semantics { contentDescription = incrementLabel },
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(0.dp),
                         ) { Text("+", fontSize = 28.sp) }
                     }
                     if (hasVolume && counter.id == active.first().id) {
-                        Text("Botones de volumen", modifier = Modifier.padding(top = 5.dp), style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(Res.string.volume_buttons), modifier = Modifier.padding(top = 5.dp), style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
@@ -391,7 +374,7 @@ private fun CountScreen(
             enabled = session.counters.isNotEmpty(),
             modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp).heightIn(min = 48.dp),
             shape = RoundedCornerShape(10.dp),
-        ) { Text("Exportar") }
+        ) { Text(stringResource(Res.string.export)) }
     }
 }
 
@@ -423,8 +406,11 @@ internal fun Confirm(
     AlertDialog(
         onDismissRequest = dismiss,
         title = { Text(title) },
-        text = { Text(if (failed) "$message\nNo se pudo guardar el cambio." else message) },
-        dismissButton = { TextButton(onClick = dismiss) { Text("Cancelar") } },
+        text = {
+            val errorMessage = stringResource(Res.string.save_error)
+            Text(if (failed) "$message\n$errorMessage" else message)
+        },
+        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(Res.string.cancel)) } },
         confirmButton = { TextButton(onClick = { failed = !commit() }) { Text(action) } },
     )
 }

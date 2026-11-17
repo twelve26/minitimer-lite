@@ -1,5 +1,6 @@
 package app.contadores
 
+import app.contadores.resources.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun WelcomeScreen(dark: Boolean, toggleTheme: () -> Unit, themeEnabled: Boolean, start: () -> Unit) {
@@ -59,6 +61,6 @@ internal fun WelcomeScreen(dark: Boolean, toggleTheme: () -> Unit, themeEnabled:
             onClick = start,
             modifier = Modifier.widthIn(max = 320.dp).fillMaxWidth().heightIn(min = 48.dp),
             shape = RoundedCornerShape(10.dp),
-        ) { Text("Comenzar") }
+        ) { Text(stringResource(Res.string.start)) }
     }
 }

@@ -91,13 +91,13 @@ internal class NotebookStore(
     var saveFailed by mutableStateOf(false)
         private set
 
-    fun startSession(newId: () -> String) {
+    fun startSession(sessionPrefix: String, counterPrefix: String, newId: () -> String) {
         val names = state.sessions.mapTo(mutableSetOf(), Session::name)
-        val number = generateSequence(1) { it + 1 }.first { "Sesión $it" !in names }
+        val number = generateSequence(1) { it + 1 }.first { "$sessionPrefix $it" !in names }
         val session = Session(
             id = newId(),
-            name = "Sesión $number",
-            counters = listOf(Counter(newId(), "Contador 1")),
+            name = "$sessionPrefix $number",
+            counters = listOf(Counter(newId(), "$counterPrefix 1")),
         )
         editor = SessionDraft(session, isNew = true)
     }

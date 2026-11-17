@@ -1,88 +1,52 @@
 # MiniTimer lite
 
-App de conteo offline para Android 8.0 o posterior y iOS 17 o posterior.
+An offline tally counter for Android 8.0 or later and iOS 17 or later. The app follows the device language and supports English, Spanish, and Brazilian Portuguese. Other device languages use English. Saved session and counter names stay as entered.
 
 ## Android
 
-Abre la carpeta `MiniTimer lite` en Android Studio y selecciona `composeApp`.
-Usa JDK 21, Android SDK 36 y Android SDK Build-Tools 36.0.0. Desde la terminal:
+Open the project folder in Android Studio and select `composeApp`. Use JDK 21, Android SDK 36, and Android SDK Build-Tools 36.0.0. To build the debug APK and run the unit tests:
 
 ```sh
 ./gradlew :composeApp:assembleDebug :composeApp:testDebugUnitTest
 ```
 
-El APK de depuración se genera en
-`composeApp/build/outputs/apk/debug/composeApp-debug.apk`.
+The debug APK is generated at `composeApp/build/outputs/apk/debug/composeApp-debug.apk`.
 
 ## iOS
 
-Abre `iosApp/MiniTimer.xcodeproj` en Xcode y ejecuta el esquema **MiniTimer**
-en un simulador de Apple Silicon. Xcode llama a Gradle para compilar el
-framework compartido. Configura JDK 21 y Android SDK 36 para Gradle. Si
-inicias Xcode desde Finder, deja JDK 21 disponible para `/usr/libexec/java_home`
-o inicia Xcode desde un entorno con `JAVA_HOME` configurado. Para instalar en
-un iPhone, elige tu equipo de firma en el destino MiniTimer.
+Open `iosApp/MiniTimer.xcodeproj` in Xcode and run the **MiniTimer** scheme on an Apple Silicon simulator. Xcode calls Gradle to build the shared framework. Set up JDK 21 and Android SDK 36 for Gradle. If you launch Xcode from Finder, make JDK 21 available to `/usr/libexec/java_home` or launch Xcode from an environment with `JAVA_HOME` set. To install on an iPhone, select your signing team in the MiniTimer target.
 
-## Usar la app
+## Using the app
 
-Pulsa **Comenzar** y crea una sesión. El formulario propone un nombre y trae
-**Contador 1** activo en cero. Puedes guardar directamente o agregar más
-contadores. En **Editar sesión** puedes cambiar los nombres, el orden y la
-participación en el total. Marca **Activo** en los contadores que quieras ver.
+Tap **Start** and create a session. The form suggests a name and starts with **Counter 1** active at zero. Save right away or add more counters. In **Edit session**, you can change counter names, order, and whether they contribute to the total. Turn on **Active** for the counters you want to see.
 
-En Android, los botones físicos de volumen suman o restan una unidad al
-primer contador activo. El lápiz de cada contador permite editar su valor.
-El menú ofrece **Restablecer**. Los cambios se guardan en el dispositivo.
-**Exportar** copia el total en la primera línea y agrega cada contador debajo.
+On Android, the volume buttons add or subtract one from the first active counter. The pencil beside each counter lets you edit its value or reset it in the same dialog. Changes are saved on the device. **Export** copies the total on the first line, followed by each counter.
 
-## Cómo está implementada
+## Implementation
 
-### Código compartido
+### Shared code
 
-[composeApp/src/commonMain](composeApp/src/commonMain) contiene la interfaz de
-Compose Multiplatform, los temas y las reglas de conteo. Android e iOS abren
-la misma pantalla raíz, `ContadoresApp`. Cada plataforma proporciona el
-guardado mediante `NotebookStore` y la función de portapapeles.
+[composeApp/src/commonMain](composeApp/src/commonMain) contains the Compose Multiplatform interface, themes, localized strings, and counting rules. Both platforms launch `ContadoresApp`. Each platform provides storage through `NotebookStore` and access to its clipboard.
 
-En [Notebook.kt](composeApp/src/commonMain/kotlin/app/contadores/Notebook.kt),
-`Notebook` reúne las sesiones y el tema elegido. Cada `Session` mantiene sus
-contadores en orden y calcula el total a partir de los activos incluidos.
-`NotebookStore` guarda una copia de los datos antes de publicar el nuevo
-estado a Compose. Si falla la escritura, la pantalla conserva el último
-estado guardado y muestra un error.
+In [Notebook.kt](composeApp/src/commonMain/kotlin/app/contadores/Notebook.kt), `Notebook` holds the sessions and selected theme. Each `Session` keeps its counters in order and calculates the total from active counters included in it. `NotebookStore` persists changes before publishing the new state to Compose. If a write fails, the UI keeps the last saved state and shows an error.
 
-**Exportar** prepara el texto en Kotlin compartido. La primera línea es
-`total - valor` y las líneas siguientes contienen todos los contadores en el
-orden de la sesión. Cada plataforma recibe ese mismo texto y lo copia con su
-API nativa.
+**Export** formats the text in shared Kotlin code. The first line is `total - value`, followed by one line per counter in session order. Each platform copies the resulting text through its native clipboard API.
+
+The [Compose string resources](composeApp/src/commonMain/composeResources) provide English defaults and Spanish and Portuguese translations. Compose resolves them from the system locale on each platform. Titles saved as session data keep their original text.
 
 ### Android
 
-[MainActivity.kt](composeApp/src/androidMain/kotlin/app/contadores/MainActivity.kt)
-monta la interfaz compartida con `setContent`. Su `AndroidViewModel` lee
-`notebook.json` del almacenamiento privado de la app y guarda los cambios
-escribiendo primero un archivo temporal y luego reemplazando el anterior
-de forma atómica.
+[MainActivity.kt](composeApp/src/androidMain/kotlin/app/contadores/MainActivity.kt) mounts the shared interface with `setContent`. Its `AndroidViewModel` reads `notebook.json` from the app’s private storage. To save changes, it writes a temporary file and atomically replaces the previous file.
 
-La actividad copia el texto con `ClipboardManager`. También recibe las
-pulsaciones de volumen y las dirige al primer contador activo mientras la
-pantalla de conteo está en primer plano y el dispositivo está desbloqueado.
+The activity copies text with `ClipboardManager`. It also directs volume button presses to the first active counter when the counting screen is in the foreground and the device is unlocked.
 
 ### iOS
 
-[AppDelegate.swift](iosApp/AppDelegate.swift) crea la ventana con UIKit.
-El puente de Kotlin en
-[MiniTimerHost.kt](composeApp/src/iosMain/kotlin/app/contadores/MiniTimerHost.kt)
-monta la interfaz compartida con `ComposeUIViewController`. Swift lee y
-guarda `notebook.json` en **Application Support** con escritura atómica.
-También copia el texto con `UIPasteboard`. El conteo se hace con los botones
-en pantalla.
+[AppDelegate.swift](iosApp/AppDelegate.swift) creates the window with UIKit. The Kotlin bridge in [MiniTimerHost.kt](composeApp/src/iosMain/kotlin/app/contadores/MiniTimerHost.kt) mounts the shared interface with `ComposeUIViewController`. Swift reads `notebook.json` from **Application Support** and writes changes atomically. It copies text with `UIPasteboard`. Use the on-screen buttons to count.
 
-El proyecto de Xcode ejecuta `:composeApp:embedAndSignAppleFrameworkForXcode`
-en una fase de compilación. Gradle prepara `MiniTimerShared` para el iPhone o
-el simulador ARM64 e incluye los recursos de Compose, como las fuentes.
+The Xcode project runs `:composeApp:embedAndSignAppleFrameworkForXcode` in a build phase. Gradle builds `MiniTimerShared` for an iPhone or an ARM64 simulator and packages Compose resources, including fonts.
 
-## Documentación
+## Documentation
 
-- [Especificación funcional](ESPECIFICACION.md)
-- [Diseño visual](DISENO.md)
+- [Functional specification](SPECIFICATION.md)
+- [Visual design](DESIGN.md)

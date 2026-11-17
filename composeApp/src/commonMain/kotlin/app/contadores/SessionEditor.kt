@@ -1,5 +1,6 @@
 package app.contadores
 
+import app.contadores.resources.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -36,6 +37,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun SessionEditor(
@@ -45,8 +48,9 @@ internal fun SessionEditor(
     commit: (Session) -> Boolean,
 ) {
     val draft = editor.session
+    val counterPrefix = stringResource(Res.string.counter_prefix)
     var removeId by rememberSaveable { mutableStateOf<String?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<StringResource?>(null) }
     val listState = rememberLazyListState()
 
     fun update(change: Session.() -> Session) {
@@ -66,11 +70,11 @@ internal fun SessionEditor(
     fun save() {
         val draft = editor.session
         error = when {
-            draft.name.isBlank() -> "Escribe el nombre de la sesión."
-            draft.counters.isEmpty() -> "Agrega al menos un contador."
-            draft.counters.any { it.name.isBlank() } -> "Escribe un nombre para cada contador."
+            draft.name.isBlank() -> Res.string.missing_session_name
+            draft.counters.isEmpty() -> Res.string.missing_counter
+            draft.counters.any { it.name.isBlank() } -> Res.string.missing_counter_name
             !draft.allowNegative && draft.counters.any { it.value < 0 } ->
-                "Corrige los valores negativos antes de desactivar esta opción."
+                Res.string.existing_negative
             else -> null
         }
         if (error != null) return
@@ -81,7 +85,7 @@ internal fun SessionEditor(
                 it.copy(name = it.name.trim())
             },
         )
-        if (!commit(clean)) error = "No se pudo guardar la sesión."
+        if (!commit(clean)) error = Res.string.save_session_error
     }
 
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -91,7 +95,7 @@ internal fun SessionEditor(
         ) {
             Column(Modifier.padding(horizontal = 16.dp)) {
                 Text(
-                    if (editor.isNew) "Nueva sesión" else "Editar sesión",
+                    if (editor.isNew) stringResource(Res.string.new_session) else stringResource(Res.string.edit_session),
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(vertical = 14.dp),
                 )
@@ -103,56 +107,58 @@ internal fun SessionEditor(
                 ) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Field("Nombre de la sesión", draft.name) { update { copy(name = it) } }
-                            Field("Descripción", draft.description, singleLine = false) { update { copy(description = it) } }
-                            Toggle("Mostrar Total", draft.showTotal) { update { copy(showTotal = it) } }
-                            Toggle("Permitir negativos", draft.allowNegative) { update { copy(allowNegative = it) } }
+                            Field(stringResource(Res.string.session_name), draft.name) { update { copy(name = it) } }
+                            Field(stringResource(Res.string.description), draft.description, singleLine = false) { update { copy(description = it) } }
+                            Toggle(stringResource(Res.string.show_total), draft.showTotal) { update { copy(showTotal = it) } }
+                            Toggle(stringResource(Res.string.allow_negative), draft.allowNegative) { update { copy(allowNegative = it) } }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    if (editor.isNew) "Contadores"
-                                    else "Activos · ${draft.activeCounters.size} de ${draft.counters.size}",
+                                    if (editor.isNew) stringResource(Res.string.counters)
+                                    else stringResource(Res.string.active_count, draft.activeCounters.size, draft.counters.size),
                                     style = MaterialTheme.typography.titleMedium,
                                     modifier = Modifier.weight(1f),
                                 )
                                 TextButton(onClick = {
                                     val number = editor.session.counters.size + 1
-                                    update { copy(counters = counters + Counter(newId(), "Contador $number")) }
+                                    update { copy(counters = counters + Counter(newId(), "$counterPrefix $number")) }
                                     listState.requestScrollToItem(number)
-                                }) { Text("Agregar contador") }
+                                }) { Text(stringResource(Res.string.add_counter)) }
                             }
                         }
                     }
                     itemsIndexed(draft.counters, key = { _, counter -> counter.id }) { index, counter ->
+                        val moveUp = stringResource(Res.string.move_counter_up, counter.name)
+                        val moveDown = stringResource(Res.string.move_counter_down, counter.name)
                         HorizontalDivider()
                         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Field("Nombre del contador", counter.name) { editCounter(counter.copy(name = it)) }
+                            Field(stringResource(Res.string.counter_name), counter.name) { editCounter(counter.copy(name = it)) }
                             if (!editor.isNew) {
-                                Toggle("Activo", counter.active) { editCounter(counter.copy(active = it)) }
+                                Toggle(stringResource(Res.string.active), counter.active) { editCounter(counter.copy(active = it)) }
                             }
-                            Toggle("Incluir en el total", counter.included) { editCounter(counter.copy(included = it)) }
+                            Toggle(stringResource(Res.string.include_in_total), counter.included) { editCounter(counter.copy(included = it)) }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 TextButton(
                                     onClick = { move(index, -1) },
                                     enabled = index > 0,
-                                    modifier = Modifier.semantics { contentDescription = "Subir ${counter.name}" },
+                                    modifier = Modifier.semantics { contentDescription = moveUp },
                                 ) { Text("↑") }
                                 TextButton(
                                     onClick = { move(index, 1) },
                                     enabled = index < draft.counters.lastIndex,
-                                    modifier = Modifier.semantics { contentDescription = "Bajar ${counter.name}" },
+                                    modifier = Modifier.semantics { contentDescription = moveDown },
                                 ) { Text("↓") }
                                 TextButton(
                                     onClick = { removeId = counter.id },
                                     enabled = draft.counters.size > 1,
-                                ) { Text("Borrar") }
+                                ) { Text(stringResource(Res.string.delete)) }
                             }
                         }
                     }
                 }
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                error?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
                 Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onClose) { Text("Cancelar") }
-                    Button(onClick = ::save) { Text("Guardar") }
+                    TextButton(onClick = onClose) { Text(stringResource(Res.string.cancel)) }
+                    Button(onClick = ::save) { Text(stringResource(Res.string.save)) }
                 }
             }
         }
@@ -160,7 +166,7 @@ internal fun SessionEditor(
 
     val toRemove = draft.counters.firstOrNull { it.id == removeId }
     if (toRemove != null) {
-        Confirm("Borrar contador", "Se borrará «${toRemove.name}» al guardar la sesión.", "Borrar", { removeId = null }) {
+        Confirm(stringResource(Res.string.delete_counter), stringResource(Res.string.delete_counter_message, toRemove.name), stringResource(Res.string.delete), { removeId = null }) {
             update { copy(counters = counters.filterNot { it.id == toRemove.id }) }
             removeId = null
             true
@@ -188,34 +194,53 @@ private fun Toggle(label: String, checked: Boolean, change: (Boolean) -> Unit) {
 }
 
 @Composable
-internal fun ValueDialog(counter: Counter, allowNegative: Boolean, onClose: () -> Unit, commit: (Int) -> Boolean) {
+internal fun ValueDialog(
+    counter: Counter,
+    allowNegative: Boolean,
+    onClose: () -> Unit,
+    commit: (Int) -> Boolean,
+) {
     var input by rememberSaveable(counter.id) { mutableStateOf(counter.value.toString()) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var confirmReset by rememberSaveable(counter.id) { mutableStateOf(false) }
+    var error by remember { mutableStateOf<StringResource?>(null) }
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text(counter.name) },
         text = {
-            OutlinedTextField(
-                value = input,
-                onValueChange = { input = it; error = null },
-                label = { Text("Valor entero") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = if (allowNegative) KeyboardType.Text else KeyboardType.Number),
-                isError = error != null,
-                supportingText = error?.let { message -> { Text(message) } },
-            )
+            Column {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it; error = null },
+                    label = { Text(stringResource(Res.string.integer_value)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = if (allowNegative) KeyboardType.Text else KeyboardType.Number),
+                    isError = error != null,
+                    supportingText = error?.let { message -> { Text(stringResource(message)) } },
+                )
+                TextButton(onClick = { confirmReset = true }) {
+                    Text(stringResource(Res.string.reset), color = MaterialTheme.colorScheme.error)
+                }
+            }
         },
-        dismissButton = { TextButton(onClick = onClose) { Text("Cancelar") } },
+        dismissButton = { TextButton(onClick = onClose) { Text(stringResource(Res.string.cancel)) } },
         confirmButton = {
             Button(onClick = {
                 val value = input.trim().toIntOrNull()
                 error = when {
-                    value == null -> "Escribe un número entero válido."
-                    value < 0 && !allowNegative -> "La sesión no permite valores negativos."
-                    !commit(value) -> "No se pudo guardar el valor."
+                    value == null -> Res.string.invalid_integer
+                    value < 0 && !allowNegative -> Res.string.negative_not_allowed
+                    !commit(value) -> Res.string.save_value_error
                     else -> null
                 }
-            }) { Text("Guardar") }
+            }) { Text(stringResource(Res.string.save)) }
         },
     )
+    if (confirmReset) {
+        Confirm(
+            title = stringResource(Res.string.reset_counter),
+            message = stringResource(Res.string.reset_message, counter.name),
+            action = stringResource(Res.string.reset),
+            dismiss = { confirmReset = false },
+        ) { commit(0) }
+    }
 }
