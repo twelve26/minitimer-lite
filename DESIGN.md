@@ -31,3 +31,9 @@ The app starts in the light theme. The moon icon switches to dark, and the sun i
 - Flighty informed the hierarchy for information that needs to be read at a glance. [Behind the Design: Flighty](https://developer.apple.com/news/?id=970ncww4).
 - Tally informed the approach to grouping counters and editing their values. [Tally on the App Store](https://apps.apple.com/us/app/tally-quick-counter/id957912407).
 - Roman Tsukanov’s Counter informed touch and volume button counting on Android. [Counter on F-Droid](https://f-droid.org/packages/me.tsukanov.counter/).
+
+## App icon
+
+The launcher icon uses cream tally marks on a pine green background. Android
+uses an adaptive icon with a monochrome layer for supported themed launchers.
+iOS uses the 1024 × 1024 image in the AppIcon asset catalog.
