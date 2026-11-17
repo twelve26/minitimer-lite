@@ -442,7 +442,7 @@ private fun CountBar(
             ) { Text("−1", fontSize = 24.sp) }
             Button(
                 onClick = { adjust(1) },
-                modifier = Modifier.weight(2f).heightIn(min = 58.dp)
+                modifier = Modifier.weight(1f).heightIn(min = 58.dp)
                     .semantics { contentDescription = incrementLabel },
                 shape = RoundedCornerShape(10.dp),
             ) { Text("+1", fontSize = 24.sp) }

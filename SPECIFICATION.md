@@ -26,7 +26,7 @@ Record counts as you go and resume them later. For example, a church can use a s
 - Deleting a counter or session requires confirmation. Deleting a session also deletes its counters.
 
 The counting bar stays at the bottom of the session. It shows the selected
-counter and its current value, with a wider **+1** button beside **−1**.
+counter and its current value, with equally wide **−1** and **+1** buttons.
 The first active counter is selected when you open the session. Tap a name
 in the list or use the selector in the bar to switch. Android's volume buttons
 continue to control the first active counter in the session order.

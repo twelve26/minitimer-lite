@@ -41,5 +41,5 @@ iOS uses the 1024 × 1024 image in the AppIcon asset catalog.
 
 The session header contains **Export**. The bottom bar keeps the selected
 counter, its value, and the **−1** and **+1** buttons within thumb reach.
-The **+1** button uses twice the available width of **−1**. Tap a row name
+Both buttons have the same width. Tap a row name
 or the bar selector to switch counters. The list scrolls above the bar.
