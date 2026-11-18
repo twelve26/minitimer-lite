@@ -55,4 +55,6 @@
     <string name="session_prefix">Sesión</string>
     <string name="counter_prefix">Contador</string>
     <string name="counting">Contando: %1$s</string>
+    <string name="select_session">Selecciona una sesión para empezar a contar.</string>
+    <string name="create_to_count">Crea una sesión para empezar a contar.</string>
 </resources>

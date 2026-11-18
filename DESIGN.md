@@ -42,3 +42,10 @@ The session header contains **Export**. The bottom bar keeps the selected
 counter, its value, and the **−1** and **+1** buttons within thumb reach.
 Both buttons have the same width. Tap a row name
 or the bar selector to switch counters. The list scrolls above the bar.
+
+## Wide iOS windows
+
+The iPhone Duo inner display can show sessions on the left and the selected
+session on the right. The layout uses the available width and height, so roomy
+iPad windows use both panes too. When the window narrows, the current session
+and counter selection stay visible in a single pane. Android uses a single pane.

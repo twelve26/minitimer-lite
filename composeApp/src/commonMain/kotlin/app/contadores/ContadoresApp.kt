@@ -4,16 +4,19 @@ import app.contadores.resources.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -31,6 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Typography
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -82,6 +86,7 @@ internal fun ContadoresApp(
     store: NotebookStore,
     newId: () -> String,
     copyText: (String) -> Unit,
+    supportsTwoPane: Boolean = false,
     bindVolume: (((Int) -> Unit)?) -> Unit = {},
     backHandler: @Composable (Boolean, () -> Unit) -> Unit = { _, _ -> },
 ) {
@@ -128,29 +133,52 @@ internal fun ContadoresApp(
                         themeEnabled = !store.readFailed,
                         start = { started = true },
                     )
-                } else if (session == null) {
-                    HomeScreen(
-                        sessions = notebook.sessions,
-                        create = { store.startSession(sessionPrefix, counterPrefix, newId) },
-                        open = { sessionId = it },
-                        delete = { deleteId = it },
-                        dark = dark,
-                        toggleTheme = toggleTheme,
-                        enabled = !store.readFailed,
-                    )
                 } else {
-                    CountScreen(
-                        session = session,
-                        numbers = if (dark) FontFamily(Font(Res.font.ibm_plex_mono, FontWeight.Bold)) else MaterialTheme.typography.bodyLarge.fontFamily ?: FontFamily.SansSerif,
-                        back = { sessionId = null },
-                        edit = { store.editor = SessionDraft(session) },
-                        dark = dark,
-                        toggleTheme = toggleTheme,
-                        adjust = { id, delta -> store.adjust(session.id, id, delta) },
-                        move = { id, target -> store.moveActive(session.id, id, target) },
-                        editValue = { valueId = it },
-                        export = { copyText(session.exportText()) },
-                    )
+                    BoxWithConstraints(Modifier.fillMaxSize()) {
+                        val twoPane = supportsTwoPane && maxWidth >= 720.dp && maxHeight >= 520.dp
+                        val listWidth = (maxWidth * 0.34f).coerceIn(260.dp, 340.dp)
+                        Row(Modifier.fillMaxSize()) {
+                            if (twoPane || session == null) {
+                                Box(if (twoPane) Modifier.width(listWidth).fillMaxHeight() else Modifier.fillMaxSize()) {
+                                    HomeScreen(
+                                        sessions = notebook.sessions,
+                                        selectedId = session?.id,
+                                        create = { store.startSession(sessionPrefix, counterPrefix, newId) },
+                                        open = { sessionId = it },
+                                        delete = { deleteId = it },
+                                        dark = dark,
+                                        toggleTheme = toggleTheme,
+                                        enabled = !store.readFailed,
+                                    )
+                                }
+                            }
+                            if (twoPane) VerticalDivider()
+                            if (twoPane || session != null) {
+                                Box(Modifier.weight(1f).fillMaxHeight()) {
+                                    if (session == null) {
+                                        Text(
+                                            stringResource(if (notebook.sessions.isEmpty()) Res.string.create_to_count else Res.string.select_session),
+                                            modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                        )
+                                    } else {
+                                        CountScreen(
+                                            session = session,
+                                            numbers = if (dark) FontFamily(Font(Res.font.ibm_plex_mono, FontWeight.Bold)) else MaterialTheme.typography.bodyLarge.fontFamily ?: FontFamily.SansSerif,
+                                            back = if (twoPane) null else { { sessionId = null } },
+                                            edit = { store.editor = SessionDraft(session) },
+                                            dark = dark,
+                                            toggleTheme = toggleTheme,
+                                            adjust = { id, delta -> store.adjust(session.id, id, delta) },
+                                            move = { id, target -> store.moveActive(session.id, id, target) },
+                                            editValue = { valueId = it },
+                                            export = { copyText(session.exportText()) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -215,6 +243,7 @@ private fun NotebookTheme(dark: Boolean, content: @Composable () -> Unit) {
 @Composable
 private fun HomeScreen(
     sessions: List<Session>,
+    selectedId: String?,
     create: () -> Unit,
     open: (String) -> Unit,
     delete: (String) -> Unit,
@@ -239,8 +268,14 @@ private fun HomeScreen(
             val deleteLabel = stringResource(Res.string.delete_session_a11y, session.name)
             HorizontalDivider()
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Surface(onClick = { open(session.id) }, modifier = Modifier.weight(1f)) {
-                    Column(Modifier.padding(vertical = 14.dp)) {
+                Surface(
+                    onClick = { open(session.id) },
+                    modifier = Modifier.weight(1f),
+                    color = if (session.id == selectedId) MaterialTheme.colorScheme.surfaceVariant
+                        else MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(10.dp),
+                ) {
+                    Column(Modifier.padding(horizontal = 8.dp, vertical = 14.dp)) {
                         Text(session.name, style = MaterialTheme.typography.titleLarge)
                         if (session.description.isNotBlank()) Text(session.description, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -258,7 +293,7 @@ private fun HomeScreen(
 private fun CountScreen(
     session: Session,
     numbers: FontFamily,
-    back: () -> Unit,
+    back: (() -> Unit)?,
     edit: () -> Unit,
     dark: Boolean,
     toggleTheme: () -> Unit,
@@ -280,15 +315,15 @@ private fun CountScreen(
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         Row(
             Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = if (back == null) Arrangement.End else Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = back) { Text(stringResource(Res.string.back_sessions)) }
+            if (back != null) TextButton(onClick = back) { Text(stringResource(Res.string.back_sessions)) }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = export, enabled = session.counters.isNotEmpty()) {
                     Text(stringResource(Res.string.export))
                 }
-                ThemeButton(dark, toggleTheme)
+                if (back != null) ThemeButton(dark, toggleTheme)
             }
         }
         LazyColumn(

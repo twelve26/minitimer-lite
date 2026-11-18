@@ -24,6 +24,7 @@ fun miniTimerViewController(
             store,
             newId = { NSUUID().UUIDString },
             copyText = copyText,
+            supportsTwoPane = true,
         )
     }
 }

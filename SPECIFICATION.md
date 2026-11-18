@@ -77,3 +77,10 @@ The project uses Kotlin Multiplatform and Compose Multiplatform. Android and iOS
 - Set the device language to English, Spanish, or Portuguese and verify the interface uses the corresponding language. Switch to an unsupported language and verify it uses English. Saved names and descriptions persist across language changes.
 
 - Open a session with several active counters. Verify the bottom bar starts on the first. Select another counter and verify the bar changes only that counter. Scroll and verify the bar stays visible. On Android, verify the volume buttons still change the first active counter.
+
+## Wide iOS windows
+
+The iPhone Duo inner display can show sessions on the left and the selected
+session on the right. The layout uses the available width and height, so roomy
+iPad windows use both panes too. When the window narrows, the current session
+and counter selection stay visible in a single pane. Android uses a single pane.
